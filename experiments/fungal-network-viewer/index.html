@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mycelium Learning Lab: Fungal Network Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    :root {
+      --bg: #0f1720;
+      --panel: #18252b;
+      --panel-2: #22313a;
+      --text: #f7f8f2;
+      --muted: #bfd0c8;
+
+      --accent: #a7f432;
+      --accent-2: #47d7ac;
+      --accent-3: #6ecbff;
+      --signal: #ffd166;
+      --highlight: #ff8c69;
+
+      --edge: rgba(167, 244, 50, 0.22);
+      --taxon: #47d7ac;
+      --location: #6ecbff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(71, 215, 172, 0.16), transparent 34%),
+        radial-gradient(circle at top right, rgba(110, 203, 255, 0.14), transparent 28%),
+        radial-gradient(circle at bottom left, rgba(255, 209, 102, 0.10), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(255, 140, 105, 0.10), transparent 28%),
+        var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      padding: 2.2rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3.6rem);
+      letter-spacing: -0.06em;
+    }
+
+    header p {
+      max-width: 800px;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 1.05rem;
+    }
+
+    .tagline {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      padding: 0.45rem 0.8rem;
+      border-radius: 999px;
+      background: rgba(167, 244, 50, 0.12);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 0.85rem;
+      border: 1px solid rgba(167, 244, 50, 0.24);
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: 330px 1fr;
+      gap: 1rem;
+      padding: 1rem;
+      min-height: calc(100vh - 190px);
+    }
+
+    aside {
+      background: rgba(24, 37, 43, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 22px;
+      padding: 1rem;
+      overflow: auto;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+    }
+
+    aside h2,
+    aside h3 {
+      margin-top: 0.25rem;
+    }
+
+    .metric {
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02)),
+        var(--panel-2);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 0.95rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 1.7rem;
+      color: var(--accent);
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .legend {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin: 1rem 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.55rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 999px;
+    }
+
+    .dot {
+      width: 0.8rem;
+      height: 0.8rem;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    .taxon {
+      background: var(--taxon);
+    }
+
+    .location {
+      background: var(--location);
+    }
+
+    #network-card {
+      position: relative;
+      background:
+        radial-gradient(circle at center, rgba(167, 244, 50, 0.06), transparent 42%),
+        rgba(15, 23, 32, 0.76);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 22px;
+      overflow: hidden;
+      min-height: 680px;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.25);
+    }
+
+    #network {
+      width: 100%;
+      height: 100%;
+      min-height: 680px;
+      display: block;
+    }
+
+    #details {
+      position: absolute;
+      right: 1rem;
+      top: 1rem;
+      max-width: 330px;
+      background: rgba(24, 37, 43, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 18px;
+      padding: 1rem;
+      color: var(--muted);
+      line-height: 1.5;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+    }
+
+    #details strong {
+      color: var(--text);
+      font-size: 1.05rem;
+    }
+
+    button {
+      width: 100%;
+      border: 0;
+      border-radius: 999px;
+      padding: 0.82rem 1rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #102018;
+      font-weight: 800;
+      cursor: pointer;
+      margin: 0.4rem 0;
+      box-shadow: 0 12px 30px rgba(167, 244, 50, 0.16);
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button.secondary {
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid rgba(167, 244, 50, 0.42);
+      box-shadow: none;
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+      margin-top: 1rem;
+      background: rgba(255, 209, 102, 0.08);
+      border: 1px solid rgba(255, 209, 102, 0.18);
+      padding: 0.85rem;
+      border-radius: 16px;
+    }
+
+    .note strong {
+      color: var(--signal);
+    }
+
+    #top-connected {
+      padding-left: 1.3rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    #top-connected li::marker {
+      color: var(--highlight);
+      font-weight: 800;
+    }
+
+    code {
+      color: var(--signal);
+    }
+
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      #details {
+        position: static;
+        max-width: none;
+        border-radius: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="tagline">Real fungal data · interactive graph learning</div>
+    <h1>Mycelium Learning Lab</h1>
+    <p>
+      Explore a real-data-supported fungal network. This prototype uses public GBIF occurrence data
+      to connect fungal taxa with locations where they have been observed.
+    </p>
+  </header>
+
+  <main>
+    <aside>
+      <h2>Network metrics</h2>
+
+      <div class="metric">
+        <strong id="total-nodes">—</strong>
+        <span>Total nodes</span>
+      </div>
+
+      <div class="metric">
+        <strong id="total-edges">—</strong>
+        <span>Total edges</span>
+      </div>
+
+      <div class="metric">
+        <strong id="average-degree">—</strong>
+        <span>Average degree</span>
+      </div>
+
+      <div class="metric">
+        <strong id="isolated-nodes">—</strong>
+        <span>Isolated nodes</span>
+      </div>
+
+      <div class="legend">
+        <div class="legend-item"><span class="dot taxon"></span> Fungal taxon</div>
+        <div class="legend-item"><span class="dot location"></span> Location</div>
+      </div>
+
+      <button id="pulse-button">Send signal pulse</button>
+      <button id="reset-button" class="secondary">Reset view</button>
+
+      <div class="note">
+        <strong>Learning idea:</strong>
+        Nodes and edges are real-data-derived. The signal animation is an educational model that helps explain pathways,
+        connectivity, and network structure.
+      </div>
+
+      <h3>Most connected</h3>
+      <ol id="top-connected"></ol>
+    </aside>
+
+    <section id="network-card">
+      <canvas id="network"></canvas>
+      <div id="details">
+        <strong>Click a node</strong>
+        <p>
+          Select a fungal taxon or location to inspect its label, type, and occurrence count.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const graphPath = "../../data/processed/fungal_network_graph.json";
+    const metricsPath = "../../data/processed/fungal_network_metrics.json";
+
+    const canvas = document.getElementById("network");
+    const ctx = canvas.getContext("2d");
+    const details = document.getElementById("details");
+
+    let graph = null;
+    let metrics = null;
+    let nodes = [];
+    let edges = [];
+    let selectedNodeId = null;
+    let pulse = 0;
+    let pulseActive = false;
+
+    function resizeCanvas() {
+      const card = document.getElementById("network-card");
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = card.clientWidth * ratio;
+      canvas.height = card.clientHeight * ratio;
+      canvas.style.width = `${card.clientWidth}px`;
+      canvas.style.height = `${card.clientHeight}px`;
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    }
+
+    function randomBetween(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function prepareGraph(rawGraph) {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+
+      nodes = rawGraph.nodes.map((node) => ({
+        ...node,
+        x: randomBetween(80, width - 80),
+        y: randomBetween(80, height - 80),
+        vx: 0,
+        vy: 0,
+        radius: node.type === "location" ? 9 : 6 + Math.min((node.occurrenceCount || 1), 10) * 0.5,
+      }));
+
+      const nodeById = new Map(nodes.map((node) => [node.id, node]));
+
+      edges = rawGraph.edges
+        .map((edge) => ({
+          ...edge,
+          sourceNode: nodeById.get(edge.source),
+          targetNode: nodeById.get(edge.target),
+        }))
+        .filter((edge) => edge.sourceNode && edge.targetNode);
+    }
+
+    function simulateLayout() {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+
+      for (let i = 0; i < 80; i++) {
+        for (let a = 0; a < nodes.length; a++) {
+          for (let b = a + 1; b < nodes.length; b++) {
+            const nodeA = nodes[a];
+            const nodeB = nodes[b];
+
+            const dx = nodeA.x - nodeB.x;
+            const dy = nodeA.y - nodeB.y;
+            const distanceSquared = dx * dx + dy * dy || 1;
+            const force = Math.min(80 / distanceSquared, 0.08);
+
+            nodeA.vx += dx * force;
+            nodeA.vy += dy * force;
+            nodeB.vx -= dx * force;
+            nodeB.vy -= dy * force;
+          }
+        }
+
+        for (const edge of edges) {
+          const source = edge.sourceNode;
+          const target = edge.targetNode;
+
+          const dx = target.x - source.x;
+          const dy = target.y - source.y;
+
+          source.vx += dx * 0.002;
+          source.vy += dy * 0.002;
+          target.vx -= dx * 0.002;
+          target.vy -= dy * 0.002;
+        }
+
+        for (const node of nodes) {
+          node.vx += (width / 2 - node.x) * 0.0008;
+          node.vy += (height / 2 - node.y) * 0.0008;
+
+          node.x += node.vx;
+          node.y += node.vy;
+
+          node.vx *= 0.84;
+          node.vy *= 0.84;
+
+          node.x = Math.max(30, Math.min(width - 30, node.x));
+          node.y = Math.max(30, Math.min(height - 30, node.y));
+        }
+      }
+    }
+
+    function isConnectedToSelected(edge) {
+      return edge.source === selectedNodeId || edge.target === selectedNodeId;
+    }
+
+    function draw() {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      ctx.clearRect(0, 0, width, height);
+
+      for (const edge of edges) {
+        const highlighted = selectedNodeId && isConnectedToSelected(edge);
+
+        ctx.beginPath();
+        ctx.moveTo(edge.sourceNode.x, edge.sourceNode.y);
+        ctx.lineTo(edge.targetNode.x, edge.targetNode.y);
+        ctx.lineWidth = highlighted ? 2.8 : Math.min(1 + edge.weight * 0.25, 4);
+        ctx.strokeStyle = highlighted
+          ? "rgba(255, 140, 105, 0.9)"
+          : "rgba(167, 244, 50, 0.22)";
+        ctx.stroke();
+      }
+
+      if (pulseActive && selectedNodeId) {
+        for (const edge of edges.filter(isConnectedToSelected)) {
+          const source = edge.sourceNode;
+          const target = edge.targetNode;
+
+          const x = source.x + (target.x - source.x) * pulse;
+          const y = source.y + (target.y - source.y) * pulse;
+
+          ctx.beginPath();
+          ctx.arc(x, y, 6, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(255, 209, 102, 0.98)";
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(x, y, 13, 0, Math.PI * 2);
+          ctx.strokeStyle = "rgba(255, 209, 102, 0.35)";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+
+        pulse += 0.015;
+        if (pulse > 1) {
+          pulse = 0;
+          pulseActive = false;
+        }
+      }
+
+      for (const node of nodes) {
+        const selected = node.id === selectedNodeId;
+        const connected =
+          selectedNodeId &&
+          edges.some(
+            (edge) =>
+              isConnectedToSelected(edge) &&
+              (edge.source === node.id || edge.target === node.id)
+          );
+
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, selected ? node.radius + 5 : node.radius, 0, Math.PI * 2);
+
+        if (node.type === "location") {
+          ctx.fillStyle = selected || connected ? "#d7f1ff" : "#6ecbff";
+        } else {
+          ctx.fillStyle = selected || connected ? "#d8fff2" : "#47d7ac";
+        }
+
+        ctx.fill();
+
+        if (selected) {
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, node.radius + 11, 0, Math.PI * 2);
+          ctx.strokeStyle = "rgba(255, 140, 105, 0.9)";
+          ctx.lineWidth = 3;
+          ctx.stroke();
+        }
+      }
+
+      requestAnimationFrame(draw);
+    }
+
+    function updateMetricsPanel() {
+      document.getElementById("total-nodes").textContent = metrics.totalNodes;
+      document.getElementById("total-edges").textContent = metrics.totalEdges;
+      document.getElementById("average-degree").textContent = metrics.averageDegree;
+      document.getElementById("isolated-nodes").textContent = metrics.isolatedNodeCount;
+
+      const topList = document.getElementById("top-connected");
+      topList.innerHTML = "";
+
+      const nodeById = new Map(nodes.map((node) => [node.id, node]));
+
+      for (const item of metrics.topConnectedNodes.slice(0, 6)) {
+        const node = nodeById.get(item.id);
+        if (!node) continue;
+
+        const li = document.createElement("li");
+        li.textContent = `${node.label} — degree ${item.degree}`;
+        topList.appendChild(li);
+      }
+    }
+
+    function showNodeDetails(node) {
+      details.innerHTML = `
+        <strong>${node.label}</strong>
+        <p><b>Type:</b> ${node.type}</p>
+        <p><b>Group:</b> ${node.group || "Unknown"}</p>
+        <p><b>Occurrence count:</b> ${node.occurrenceCount || 0}</p>
+        <p>
+          ${
+            node.type === "taxon"
+              ? "This fungal taxon appears in real GBIF occurrence records used by this prototype."
+              : "This location is connected to fungal taxa observed in the GBIF records used by this prototype."
+          }
+        </p>
+      `;
+    }
+
+    function getClickedNode(event) {
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+
+      return nodes.find((node) => {
+        const dx = node.x - x;
+        const dy = node.y - y;
+        return Math.sqrt(dx * dx + dy * dy) <= node.radius + 6;
+      });
+    }
+
+    canvas.addEventListener("click", (event) => {
+      const node = getClickedNode(event);
+      if (!node) return;
+
+      selectedNodeId = node.id;
+      showNodeDetails(node);
+    });
+
+    document.getElementById("pulse-button").addEventListener("click", () => {
+      if (!selectedNodeId && nodes.length > 0) {
+        selectedNodeId = nodes[0].id;
+        showNodeDetails(nodes[0]);
+      }
+
+      pulse = 0;
+      pulseActive = true;
+    });
+
+    document.getElementById("reset-button").addEventListener("click", () => {
+      selectedNodeId = null;
+      pulse = 0;
+      pulseActive = false;
+      details.innerHTML = `
+        <strong>Click a node</strong>
+        <p>Select a fungal taxon or location to inspect its label, type, and occurrence count.</p>
+      `;
+    });
+
+    async function init() {
+      resizeCanvas();
+
+      const [graphResponse, metricsResponse] = await Promise.all([
+        fetch(graphPath),
+        fetch(metricsPath),
+      ]);
+
+      graph = await graphResponse.json();
+      metrics = await metricsResponse.json();
+
+      prepareGraph(graph);
+      simulateLayout();
+      updateMetricsPanel();
+      draw();
+    }
+
+    window.addEventListener("resize", () => {
+      resizeCanvas();
+      if (graph) {
+        prepareGraph(graph);
+        simulateLayout();
+      }
+    });
+
+    init().catch((error) => {
+      console.error(error);
+      details.innerHTML = `
+        <strong>Could not load data</strong>
+        <p>Run the Python script first, then serve the repo with:</p>
+        <p><code>python3 -m http.server 5173</code></p>
+      `;
+    });
+  </script>
+</body>
+</html>
