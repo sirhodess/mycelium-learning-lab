@@ -52,17 +52,45 @@ Early research setup. No production code yet.
 ## Potential Prototype Ideas
 
 ### 1. Mycelium Network Visualizer
+
 A simple interactive tool that shows nodes, connections, growth, resource sharing, or signal pathways.
 
 ### 2. Learning Concept Map
+
 A web-based map where CS concepts grow like a fungal network, showing how ideas connect over time.
 
 ### 3. Kid-Friendly Network Lesson
+
 A small educational activity that explains networks, data transfer, or distributed systems through mushroom/mycelium imagery.
 
 ### 4. Mycelium-Inspired Coding Environment
+
 A playful coding prototype where learners connect blocks or text commands to grow a living network.
 
 ## Notes
 
 This project is intentionally exploratory. The goal is to leave room for research, creative thinking, and practical software development.
+
+## Current Prototype
+
+Mycelium Learning Lab is currently evolving into a real-data-supported interactive learning tool.
+
+The first prototype uses public fungal occurrence data from GBIF to build a graph of fungal taxa and locations. The visualizer displays real-data-derived network nodes, edges, and metrics, then uses interactive animation to help explain graph concepts such as connectivity, pathways, and network structure.
+
+The project combines:
+
+- real fungal biodiversity data
+- interactive learning
+- graph visualization
+- biology-inspired computing concepts
+- accessible CS education
+
+## Running the Prototype
+
+See [SETUP.md](SETUP.md) for local setup instructions.
+
+Current prototype:
+
+```text
+experiments/fungal-network-viewer/
+```
